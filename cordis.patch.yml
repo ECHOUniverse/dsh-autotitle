@@ -1,0 +1,29 @@
+# @hanxu131/dsh-autotitle bundle patch: mounts the /title slash command into a
+# dsh profile composition. The command registers into the shared `commands`
+# registry, so every frontend that lists slash commands (Web UI, ACP/DSHACP,
+# headless) can invoke it.
+#
+# Install: `dsh plugin --profile <name> add @hanxu131/dsh-autotitle`
+# Local:   `dsh plugin --profile <name> add link:/path/to/AutoTitle_DSH`
+- insert:
+    - id: autotitle
+      # Quoted because `@` is a reserved YAML indicator.
+      name: '@hanxu131/dsh-autotitle'
+      config:
+        confirm: true
+        maxLength: 60
+        language: follow
+        prefix:
+          enabled: true
+          types:
+            - Bug
+            - Feature
+            - Question
+            - Refactor
+            - Docs
+        trim:
+          threshold: 15000
+          window: 8000
+          anchorChars: 500
+        maxOutputTokens: 64
+        timeoutMs: 30000

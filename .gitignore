@@ -1,0 +1,10 @@
+node_modules/
+lib/
+*.tgz
+.DS_Store
+.sessions/
+.pnpm-store/
+.env
+*.log
+package-lock.json
+pnpm-workspace.yaml
