@@ -153,6 +153,19 @@ dsh plugin --profile web add link:"$(pwd)"
 
 改完代码后重新 `pnpm build`，并重启对应 DSH 进程。
 
+发布新版本（维护者）：
+
+```sh
+npm run release          # patch：测试 → 升版本 → npm publish → 推送 tag
+npm run release:minor    # minor 版本
+```
+
+安装已发布版本：
+
+```sh
+dsh plugin --profile acp update @hanxu131/dsh-autotitle
+```
+
 ---
 
 ## 链接

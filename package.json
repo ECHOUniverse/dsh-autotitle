@@ -53,9 +53,13 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "npm run build && node tests/conversation.test.mjs",
+    "test": "npm run build && node --test tests/*.test.mjs",
     "clean": "rm -rf lib",
-    "prepublishOnly": "npm run typecheck && npm run build"
+    "prepublishOnly": "npm run typecheck && npm test",
+    "preversion": "npm test",
+    "release": "bash scripts/release.sh",
+    "release:minor": "bash scripts/release.sh minor",
+    "release:patch": "bash scripts/release.sh patch"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "^4.0.1",
