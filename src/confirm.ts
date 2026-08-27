@@ -7,7 +7,7 @@
  *   (platform limitation — host plugins cannot add them).
  * - Prefer a single `label` (no `description`); label+description share one flex line.
  * - Avoid wrapping detail in backticks — MarkdownText renders that as a code pill.
- * - Put the generated title in `question` so it shares heading padding with the UI.
+ * - Put the generated title in `detail`; keep `question` short for DSHACP elicitation.
  * - Typing in the free-text row clears the selected option and submits as `custom`.
  */
 import type { Agent } from '@deepseek-ai/dsh-agent'
@@ -33,6 +33,39 @@ const LABEL_RETRY_CANCEL = '取消'
 const displayTitle = (text: string): string =>
   text.replace(/^\[([^\]]+)\]/, '【$1】').replace(/`/g, "'")
 
+/** Short label reused as `question` so DSHACP maps it to the form `message` only once. */
+const CONFIRM_HEADER = '会话标题'
+const ERROR_HEADER = '标题生成失败'
+
+/**
+ * Build a user-questions item that renders cleanly in both Web UI and DSHACP.
+ *
+ * DSHACP renders `detail` in the elicitation message and uses `header` as the
+ * field title; keep `question` short and put the generated title in `detail`.
+ */
+const buildConfirmQuestionItem = (shown: string) => ({
+  id: 'autotitle-confirm',
+  header: CONFIRM_HEADER,
+  question: CONFIRM_HEADER,
+  detail: `生成的标题：${shown}\n请选择操作，或在下方输入自定义标题后提交`,
+  options: [
+    { label: LABEL_ACCEPT },
+    { label: LABEL_REGENERATE },
+    { label: LABEL_CANCEL },
+  ],
+})
+
+const buildErrorQuestionItem = (message: string) => ({
+  id: 'autotitle-error',
+  header: ERROR_HEADER,
+  question: ERROR_HEADER,
+  detail: `失败原因：${displayTitle(message)}\n请选择操作`,
+  options: [
+    { label: LABEL_RETRY },
+    { label: LABEL_RETRY_CANCEL },
+  ],
+})
+
 /**
  * Ask the user what to do with a successfully generated title.
  * Custom title: type into the free-text row (clears the radio selection) and submit.
@@ -48,18 +81,7 @@ export const askConfirmTitle = async (
     const answer = await ctx.userQuestions.ask({
       agent,
       signal,
-      questions: [
-        {
-          id: 'autotitle-confirm',
-          header: '会话标题',
-          question: `生成的标题：${shown}\n请选择操作，或在下方输入自定义标题后提交`,
-          options: [
-            { label: LABEL_ACCEPT },
-            { label: LABEL_REGENERATE },
-            { label: LABEL_CANCEL },
-          ],
-        },
-      ],
+      questions: [buildConfirmQuestionItem(shown)],
     })
 
     const item = answer.answers.find((entry) => entry.id === 'autotitle-confirm')
@@ -104,17 +126,7 @@ export const askRetryAfterError = async (
     const answer = await ctx.userQuestions.ask({
       agent,
       signal,
-      questions: [
-        {
-          id: 'autotitle-error',
-          header: '标题生成失败',
-          question: `失败原因：${displayTitle(message)}\n请选择操作`,
-          options: [
-            { label: LABEL_RETRY },
-            { label: LABEL_RETRY_CANCEL },
-          ],
-        },
-      ],
+      questions: [buildErrorQuestionItem(message)],
     })
 
     const item = answer.answers.find((entry) => entry.id === 'autotitle-error')
