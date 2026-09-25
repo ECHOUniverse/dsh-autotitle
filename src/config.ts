@@ -59,6 +59,6 @@ export const Config: z<Config> = z.object({
       anchorChars: 500,
     }),
   confirm: z.boolean().default(true),
-  maxOutputTokens: z.number().step(1).min(1).default(64),
+  maxOutputTokens: z.number().step(1).min(1).default(512),
   timeoutMs: z.number().step(1).min(1).default(30_000),
 })

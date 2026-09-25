@@ -7,6 +7,8 @@
  *   (platform limitation — host plugins cannot add them).
  * - Prefer a single `label` (no `description`); label+description share one flex line.
  * - Avoid wrapping detail in backticks — MarkdownText renders that as a code pill.
+ * - Use `\n\n` between detail lines: MarkdownText is CommonMark, so a single
+ *   `\n` collapses to a space and the hint line glues onto the title.
  * - Put the generated title in `detail`; keep `question` short for DSHACP elicitation.
  * - Typing in the free-text row clears the selected option and submits as `custom`.
  */
@@ -47,7 +49,7 @@ const buildConfirmQuestionItem = (shown: string) => ({
   id: 'autotitle-confirm',
   header: CONFIRM_HEADER,
   question: CONFIRM_HEADER,
-  detail: `生成的标题：${shown}\n请选择操作，或在下方输入自定义标题后提交`,
+  detail: `生成的标题：${shown}\n\n请选择操作，或在下方输入自定义标题后提交`,
   options: [
     { label: LABEL_ACCEPT },
     { label: LABEL_REGENERATE },
@@ -59,7 +61,7 @@ const buildErrorQuestionItem = (message: string) => ({
   id: 'autotitle-error',
   header: ERROR_HEADER,
   question: ERROR_HEADER,
-  detail: `失败原因：${displayTitle(message)}\n请选择操作`,
+  detail: `失败原因：${displayTitle(message)}\n\n请选择操作`,
   options: [
     { label: LABEL_RETRY },
     { label: LABEL_RETRY_CANCEL },

@@ -38,7 +38,7 @@ const fixedPayload = {
   id: 'autotitle-confirm',
   header: '会话标题',
   question: '会话标题',
-  detail: '生成的标题：【Refactor】示例\n请选择操作，或在下方输入自定义标题后提交',
+  detail: '生成的标题：【Refactor】示例\n\n请选择操作，或在下方输入自定义标题后提交',
   options: [{ label: '接受此标题' }, { label: '重新生成' }, { label: '取消' }],
 }
 

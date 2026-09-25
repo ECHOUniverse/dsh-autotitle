@@ -53,4 +53,25 @@ const shortCfg = { ...cfg, trim: { ...cfg.trim, threshold: 1_000_000 } }
 const excerpt = buildConversationExcerpt([], shortCfg)
 assert.equal(excerpt, undefined)
 
+// Message-shaped fixtures (dsh-llm Message: role + content blocks)
+const message = (role, text) => ({ role, content: [{ type: 'text', text }] })
+const fixture = [
+  message('user', 'hello there'),
+  { role: 'assistant', content: [{ type: 'tool-call', id: 't1', name: 'noop', input: {} }] },
+  message('assistant', 'hi!'),
+  { role: 'system', content: [{ type: 'text', text: 'system prompt' }] },
+  { role: 'user', content: [{ type: 'text', text: '   ' }] },
+]
+
+assert.deepEqual(extractTextMessages(fixture), [
+  { role: 'user', text: 'hello there' },
+  { role: 'assistant', text: 'hi!' },
+])
+
+const fixtureExcerpt = buildConversationExcerpt(fixture, shortCfg)
+assert.ok(fixtureExcerpt)
+assert.equal(fixtureExcerpt.trimmed, false)
+assert.match(fixtureExcerpt.text, /User: hello there/)
+assert.match(fixtureExcerpt.text, /Assistant: hi!/)
+
 console.log('conversation.test.mjs: ok')

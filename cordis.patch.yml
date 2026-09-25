@@ -25,5 +25,5 @@
           threshold: 15000
           window: 8000
           anchorChars: 500
-        maxOutputTokens: 64
+        maxOutputTokens: 512
         timeoutMs: 30000

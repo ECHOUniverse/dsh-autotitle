@@ -3,14 +3,30 @@
  */
 import type { Context } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
-import { BlockAssembler, createUserMessage } from '@deepseek-ai/dsh-llm'
-import { foldRequestHeader } from '@deepseek-ai/dsh-session'
+import { BlockAssembler, ReasoningEffortId, createUserMessage } from '@deepseek-ai/dsh-llm'
 import { normalizeSessionTitle } from '@deepseek-ai/dsh-session-title'
 import type { Config } from './config.ts'
+
+declare module '@deepseek-ai/dsh-llm' {
+  interface MessageSourceMap {
+    autotitle: { kind: 'autotitle' }
+  }
+}
 
 export type TitleResult = { ok: true; title: string } | { ok: false; error: string }
 
 const TITLE_TIMEOUT_CODE = 'AUTOTITLE_TIMEOUT'
+
+/** Machine code adapters raise when the model rejects a reasoning effort value. */
+const UNSUPPORTED_REASONING_EFFORT_CODE = 'UNSUPPORTED_REASONING_EFFORT'
+
+/** Adapter-owned effort id that disables model thinking for the title call. */
+const REASONING_OFF = ReasoningEffortId('off')
+
+/** Match only the adapter's unsupported-effort rejection, never other failures. */
+const isUnsupportedReasoningEffort = (error: unknown): boolean =>
+  error instanceof Error &&
+  (error as Error & { code?: string }).code === UNSUPPORTED_REASONING_EFFORT_CODE
 
 /** Build the Chinese instruction prompt wrapping the conversation excerpt. */
 export const buildPrompt = (conversationText: string, cfg: Config): string => {
@@ -75,7 +91,7 @@ export const resolveRoute = (
     return { provider: fromOptions.provider, model: fromOptions.model }
   }
 
-  const header = foldRequestHeader(agent.session.events)
+  const header = agent.session.requestHeader()
   const config = header?.config
   if (
     config !== undefined &&
@@ -146,35 +162,49 @@ export const generateTitle = async (
   const messages = [
     createUserMessage({
       content: [{ type: 'text', text: prompt }],
-      source: { kind: 'plugin', plugin: 'dsh-autotitle' },
+      source: { kind: 'autotitle' },
     }),
   ]
 
   const timed = withTimeout(signal, cfg.timeoutMs)
   try {
-    timed.signal.throwIfAborted()
-    const assembler = new BlockAssembler()
-    for await (const chunk of ctx.llm.stream({
-      provider: route.provider,
-      model: route.model,
-      messages,
-      maxTokens: cfg.maxOutputTokens,
-      sessionId: agent.session.id,
-      purpose: 'session-title',
-      signal: timed.signal,
-    })) {
+    const consumeStream = async (withReasoningOff: boolean): Promise<BlockAssembler> => {
       timed.signal.throwIfAborted()
-      assembler.push(chunk)
+      const assembler = new BlockAssembler()
+      for await (const chunk of ctx.llm.stream({
+        provider: route.provider,
+        model: route.model,
+        messages,
+        maxTokens: cfg.maxOutputTokens,
+        sessionId: agent.session.id,
+        purpose: 'session-title',
+        signal: timed.signal,
+        ...(withReasoningOff ? { reasoningEffort: REASONING_OFF } : {}),
+      })) {
+        timed.signal.throwIfAborted()
+        assembler.push(chunk)
+      }
+      timed.signal.throwIfAborted()
+      return assembler
     }
-    timed.signal.throwIfAborted()
+
+    // Try to disable model thinking first; adapters that reject the 'off'
+    // effort fail before network I/O, so retry once without the field.
+    let assembler: BlockAssembler
+    try {
+      assembler = await consumeStream(true)
+    } catch (error) {
+      if (!isUnsupportedReasoningEffort(error)) {
+        throw error
+      }
+      assembler = await consumeStream(false)
+    }
 
     const finish = assembler.finish
     if (finish.kind === 'error' || finish.kind === 'aborted') {
       return { ok: false, error: finish.failure.message }
     }
-    if (finish.kind === 'max-tokens') {
-      // Partial text may still be usable; fall through and validate.
-    } else if (finish.kind === 'tool-calls') {
+    if (finish.kind === 'tool-calls') {
       return { ok: false, error: 'Title model unexpectedly requested a tool' }
     }
 
@@ -183,8 +213,20 @@ export const generateTitle = async (
       return { ok: false, error: 'Title output must contain text only' }
     }
 
-    const raw = blocks
-      .filter((block): block is { type: 'text'; text: string } => block.type === 'text')
+    const textBlocks = blocks.filter(
+      (block): block is { type: 'text'; text: string } => block.type === 'text',
+    )
+    if (finish.kind === 'max-tokens' && textBlocks.length === 0) {
+      // Thinking consumed the whole budget before any visible text; distinct
+      // from a generic empty reply so the cause is diagnosable.
+      return {
+        ok: false,
+        error: 'Model hit the token limit during reasoning without producing a title',
+      }
+    }
+    // Partial text from a max-tokens stop may still be usable; validate below.
+
+    const raw = textBlocks
       .map((block) => block.text)
       .join('\n')
       .trim()

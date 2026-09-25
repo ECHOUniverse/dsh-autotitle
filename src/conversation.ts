@@ -1,8 +1,7 @@
 /**
- * Extract user/assistant text from a DSH session log and trim long threads.
+ * Extract user/assistant text from a session's derived messages and trim long threads.
  */
-import type { SessionEvent } from '@deepseek-ai/dsh-session'
-import { deriveEventMessage } from '@deepseek-ai/dsh-session/surface'
+import type { Message } from '@deepseek-ai/dsh-llm'
 import type { Config } from './config.ts'
 
 /** One text-bearing conversation turn used for title generation. */
@@ -18,22 +17,13 @@ const roleLabel = (role: 'user' | 'assistant'): string =>
 export const estimateTextTokens = (text: string): number => Math.ceil(text.length / 4)
 
 /**
- * Collect user + assistant text blocks from the session event log.
+ * Collect user + assistant text blocks from the session's derived messages.
  * Tool calls, tool results, system messages, and non-text blocks are skipped.
  */
-export const extractTextMessages = (events: readonly SessionEvent[]): TextMessage[] => {
+export const extractTextMessages = (input: readonly Message[]): TextMessage[] => {
   const messages: TextMessage[] = []
 
-  for (const event of events) {
-    if (event.type !== 'user/message' && event.type !== 'assistant/message') {
-      continue
-    }
-
-    const message = deriveEventMessage(event)
-    if (message === null) {
-      continue
-    }
-
+  for (const message of input) {
     if (message.role !== 'user' && message.role !== 'assistant') {
       continue
     }
@@ -115,10 +105,10 @@ export const trimConversation = (messages: readonly TextMessage[], cfg: Config):
  * @returns the excerpt text, or `undefined` when there is nothing to summarize.
  */
 export const buildConversationExcerpt = (
-  events: readonly SessionEvent[],
+  input: readonly Message[],
   cfg: Config,
 ): { text: string; trimmed: boolean } | undefined => {
-  const messages = extractTextMessages(events)
+  const messages = extractTextMessages(input)
   if (messages.length === 0) {
     return undefined
   }

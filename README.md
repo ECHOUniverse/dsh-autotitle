@@ -36,6 +36,15 @@ npx -p @deepseek-ai/dsh dsh --version
 
 3. 想清楚你平时用哪个 **profile**（常见：`web`、`acp`）。插件要装进**你实际启动的那个 profile**，不会全局共享。
 
+### 版本兼容性
+
+| 插件版本 | 适配的 DSH 版本 |
+| --- | --- |
+| 0.2.0+ | `>=0.1.7-rc.2 <0.2.0` |
+| 0.1.3 | DSH 0.1.0-rc.8 时代（旧版定格，不再更新） |
+
+DSH 0.1.7-rc.2 移除了 `Session.events` 与消息来源的 `plugin` 类型，两个时代的 API 互不兼容。仍在使用旧版 DSH 的用户请停留在插件 0.1.3。
+
 ---
 
 ## 安装（推荐）
@@ -114,7 +123,7 @@ dsh plugin --profile web remove @hanxu131/dsh-autotitle
           threshold: 15000
           window: 8000
           anchorChars: 500
-        maxOutputTokens: 64
+        maxOutputTokens: 512
         timeoutMs: 30000
 ```
 
@@ -128,7 +137,7 @@ dsh plugin --profile web remove @hanxu131/dsh-autotitle
 | `trim.window` | `8000` | 删减后保留最近约多少 token |
 | `trim.anchorChars` | `500` | 第一条用户消息锚定截断长度 |
 | `confirm` | `true` | 有确认 UI 时是否询问 |
-| `maxOutputTokens` | `64` | 生成标题的最大输出 token |
+| `maxOutputTokens` | `512` | 生成标题的最大输出 token |
 | `timeoutMs` | `30000` | 生成超时（毫秒） |
 
 长对话删减策略：保留**第一条用户消息**（主题锚）+ **最近窗口**，中间用 `[... N messages omitted ...]` 省略。

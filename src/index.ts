@@ -46,7 +46,7 @@ const runAutoTitle = async (
   config: Config,
   invocation: CommandInvocation,
 ): Promise<CommandResult> => {
-  const excerpt = buildConversationExcerpt(invocation.agent.session.events, config)
+  const excerpt = buildConversationExcerpt(invocation.agent.session.deriveMessages(), config)
   if (excerpt === undefined) {
     return {
       kind: 'error',

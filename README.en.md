@@ -36,6 +36,15 @@ npx -p @deepseek-ai/dsh dsh --version
 
 3. Know which **profile** you boot (`web`, `acp`, …). Plugins are installed **per profile**, not globally.
 
+### Version compatibility
+
+| Plugin version | Compatible DSH version |
+| --- | --- |
+| 0.2.0+ | `>=0.1.7-rc.2 <0.2.0` |
+| 0.1.3 | DSH 0.1.0-rc.8 era (frozen legacy, no longer updated) |
+
+DSH 0.1.7-rc.2 removed `Session.events` and the `plugin` message-source kind, so the two API eras are mutually incompatible. If you are still on an older DSH, stay on plugin 0.1.3.
+
 ---
 
 ## Install
@@ -109,7 +118,7 @@ Defaults ship in [`cordis.patch.yml`](cordis.patch.yml). Override in your profil
           threshold: 15000
           window: 8000
           anchorChars: 500
-        maxOutputTokens: 64
+        maxOutputTokens: 512
         timeoutMs: 30000
 ```
 
@@ -123,7 +132,7 @@ Defaults ship in [`cordis.patch.yml`](cordis.patch.yml). Override in your profil
 | `trim.window` | `8000` | Recent-token window after trim |
 | `trim.anchorChars` | `500` | First user message anchor length |
 | `confirm` | `true` | Ask when a confirm UI exists |
-| `maxOutputTokens` | `64` | Max tokens for the title call |
+| `maxOutputTokens` | `512` | Max tokens for the title call |
 | `timeoutMs` | `30000` | Generation timeout (ms) |
 
 Trimming keeps the **first user message** (topic anchor) plus a **recent window**, with `[... N messages omitted ...]` in the middle.
