@@ -49,6 +49,19 @@ const textChunks = (text, finishKind) => [
   { type: 'finish', reason: { kind: finishKind } },
 ]
 
+/**
+ * Terminal finish chunk as normalized by adapterStream: adapter failures are
+ * never thrown, they surface as {type:'finish', reason:{kind, failure}}.
+ * BlockAssembler.push reads `chunk.reason` (dsh-llm/lib/types/assembler.js:77-80).
+ */
+const finishErrorChunk = (message, code) => [
+  { type: 'finish', reason: { kind: 'error', failure: { message, code } } },
+]
+
+const finishAbortedChunk = (message) => [
+  { type: 'finish', reason: { kind: 'aborted', failure: { message, code: 'ABORTED' } } },
+]
+
 const reasoningOnlyChunks = (text, finishKind) => [
   { type: 'block-start', index: 0, blockType: 'reasoning' },
   { type: 'reasoning-delta', index: 0, text },
@@ -57,7 +70,11 @@ const reasoningOnlyChunks = (text, finishKind) => [
   { type: 'finish', reason: { kind: finishKind } },
 ]
 
-/** Error shaped like the adapter's LlmError: message + stable code, thrown before any chunk. */
+/**
+ * Error shaped like the adapter's LlmError: message + stable code, thrown
+ * before any chunk. Only contract-violating third-party adapters do this;
+ * spec adapters normalize failures to a terminal error finish chunk.
+ */
 const unsupportedEffortError = () => {
   const error = new Error(
     'pi-ai provider "mock" model "mock-reasoner" does not support reasoning effort "off"',
@@ -89,7 +106,43 @@ test('b. reasoning burns the budget to max-tokens with no text: explicit diagnos
   assert.equal(calls.length, 1)
 })
 
-test('c. UNSUPPORTED_REASONING_EFFORT retries once without the field', async () => {
+test('c. UNSUPPORTED_REASONING_EFFORT finish chunk retries once without the field', async () => {
+  // Real adapter behavior (observed on kimi-coding/k3): the rejection is a
+  // terminal error finish chunk, not a thrown error.
+  const { calls, ctx } = makeCtx([
+    {
+      chunks: finishErrorChunk(
+        'provider "kimi-coding" model "k3" does not support reasoning effort "off"',
+        'UNSUPPORTED_REASONING_EFFORT',
+      ),
+    },
+    { chunks: textChunks('[Bug] 自动标题', 'stop') },
+  ])
+  const result = await generateTitle(ctx, fakeAgent, '对话摘录', cfg, signal())
+  assert.deepEqual(result, { ok: true, title: '[Bug] 自动标题' })
+  assert.equal(calls.length, 2)
+  assert.equal(calls[0].reasoningEffort, 'off')
+  assert.equal('reasoningEffort' in calls[1], false)
+})
+
+test('c2. non-effort finish errors are not retried', async () => {
+  const { calls, ctx } = makeCtx([
+    { chunks: finishErrorChunk('rate limit exceeded, try again later', 'RATE_LIMIT') },
+  ])
+  const result = await generateTitle(ctx, fakeAgent, '对话摘录', cfg, signal())
+  assert.deepEqual(result, { ok: false, error: 'rate limit exceeded, try again later' })
+  assert.equal(calls.length, 1)
+  assert.equal(calls[0].reasoningEffort, 'off')
+})
+
+test('c3. aborted finish is never retried', async () => {
+  const { calls, ctx } = makeCtx([{ chunks: finishAbortedChunk('stream aborted by provider') }])
+  const result = await generateTitle(ctx, fakeAgent, '对话摘录', cfg, signal())
+  assert.deepEqual(result, { ok: false, error: 'stream aborted by provider' })
+  assert.equal(calls.length, 1)
+})
+
+test('c4. thrown UNSUPPORTED_REASONING_EFFORT still retries (defensive path)', async () => {
   const { calls, ctx } = makeCtx([
     { throw: unsupportedEffortError() },
     { chunks: textChunks('[Bug] 自动标题', 'stop') },
@@ -108,7 +161,7 @@ test('d. supported effort with empty model text keeps the original error', async
   assert.equal(calls.length, 1)
 })
 
-test('c2. non-effort errors are not retried', async () => {
+test('c5. non-effort thrown errors are not retried', async () => {
   const failure = new Error('connection reset')
   const { calls, ctx } = makeCtx([{ throw: failure }])
   const result = await generateTitle(ctx, fakeAgent, '对话摘录', cfg, signal())

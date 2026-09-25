@@ -23,7 +23,13 @@ const UNSUPPORTED_REASONING_EFFORT_CODE = 'UNSUPPORTED_REASONING_EFFORT'
 /** Adapter-owned effort id that disables model thinking for the title call. */
 const REASONING_OFF = ReasoningEffortId('off')
 
-/** Match only the adapter's unsupported-effort rejection, never other failures. */
+/**
+ * Match only the adapter's unsupported-effort rejection, never other failures.
+ * Defensive-only: per the dsh-llm stream contract (types.d.ts:413-415) adapter
+ * failures are normalized to terminal error finish chunks and never thrown, so
+ * the primary detection point is `finish.failure.code`; this only catches
+ * contract-violating third-party adapters that throw anyway.
+ */
 const isUnsupportedReasoningEffort = (error: unknown): boolean =>
   error instanceof Error &&
   (error as Error & { code?: string }).code === UNSUPPORTED_REASONING_EFFORT_CODE
@@ -188,19 +194,37 @@ export const generateTitle = async (
       return assembler
     }
 
-    // Try to disable model thinking first; adapters that reject the 'off'
-    // effort fail before network I/O, so retry once without the field.
+    // Try to disable model thinking first. dsh-llm stream contract: adapter
+    // failures become terminal error finish chunks, never thrown
+    // (types.d.ts:413-415), so the unsupported-effort check below inspects
+    // `finish.failure.code` on the assembled stream.
     let assembler: BlockAssembler
+    let usedReasoningOff = true
     try {
       assembler = await consumeStream(true)
     } catch (error) {
+      // Defensive path for contract-violating third-party adapters that throw
+      // instead of emitting a terminal error finish chunk; the primary
+      // detection is the finish-code check below.
       if (!isUnsupportedReasoningEffort(error)) {
         throw error
       }
+      usedReasoningOff = false
       assembler = await consumeStream(false)
     }
 
-    const finish = assembler.finish
+    let finish = assembler.finish
+    if (
+      usedReasoningOff &&
+      finish.kind === 'error' &&
+      finish.failure.code === UNSUPPORTED_REASONING_EFFORT_CODE
+    ) {
+      // The adapter rejected the 'off' effort as a terminal error finish:
+      // retry exactly once without the field. Only the first attempt (which
+      // carried reasoningEffort) is eligible; 'aborted' is never retried.
+      assembler = await consumeStream(false)
+      finish = assembler.finish
+    }
     if (finish.kind === 'error' || finish.kind === 'aborted') {
       return { ok: false, error: finish.failure.message }
     }
