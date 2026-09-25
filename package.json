@@ -1,6 +1,6 @@
 {
   "name": "@hanxu131/dsh-autotitle",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "DeepSeek Harness slash command /title: generate a session title from the conversation with smart trimming and optional confirm",
   "type": "module",
   "main": "lib/index.js",
