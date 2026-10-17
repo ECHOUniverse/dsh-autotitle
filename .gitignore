@@ -8,3 +8,4 @@ lib/
 *.log
 package-lock.json
 pnpm-workspace.yaml
+.tmp/

@@ -40,10 +40,13 @@ npx -p @deepseek-ai/dsh dsh --version
 
 | Plugin version | Compatible DSH version |
 | --- | --- |
-| 0.2.0+ | `>=0.1.7-rc.2 <0.2.0` |
+| 0.2.2+ | `>=0.1.7-rc.2 <0.3.0` (includes 0.2.x prereleases) |
+| 0.2.0–0.2.1 | `>=0.1.7-rc.2 <0.2.0` |
 | 0.1.3 | DSH 0.1.0-rc.8 era (frozen legacy, no longer updated) |
 
 DSH 0.1.7-rc.2 removed `Session.events` and the `plugin` message-source kind, so the two API eras are mutually incompatible. If you are still on an older DSH, stay on plugin 0.1.3.
+
+From 0.2.2 the manifest declares `engines.dsh`, covering DSH 0.1.7-rc.2 and 0.2.x (0.2.1-rc.1 verified); 0.3 is out of scope.
 
 ---
 

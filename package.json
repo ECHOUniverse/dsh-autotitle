@@ -1,6 +1,6 @@
 {
   "name": "@hanxu131/dsh-autotitle",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "DeepSeek Harness slash command /title: generate a session title from the conversation with smart trimming and optional confirm",
   "type": "module",
   "main": "lib/index.js",
@@ -39,7 +39,8 @@
     "slash-command"
   ],
   "engines": {
-    "node": "^22.19.0 || >=24"
+    "node": "^22.19.0 || >=24",
+    "dsh": ">=0.1.7-rc.2 <0.2.0 || >=0.2.1-rc.1 <0.3.0-0"
   },
   "publishConfig": {
     "access": "public",
@@ -63,24 +64,25 @@
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "^4.0.1",
-    "@deepseek-ai/dsh-agent": ">=0.1.7-rc.2 <0.2.0",
-    "@deepseek-ai/dsh-commands": ">=0.1.7-rc.2 <0.2.0",
-    "@deepseek-ai/dsh-llm": ">=0.1.7-rc.2 <0.2.0",
-    "@deepseek-ai/dsh-session": ">=0.1.7-rc.2 <0.2.0",
-    "@deepseek-ai/dsh-session-title": ">=0.1.7-rc.2 <0.2.0",
-    "@deepseek-ai/dsh-user-questions": ">=0.1.7-rc.2 <0.2.0",
+    "@deepseek-ai/dsh-agent": ">=0.1.7-rc.2 <0.2.0 || >=0.2.1-rc.1 <0.3.0-0",
+    "@deepseek-ai/dsh-commands": ">=0.1.7-rc.2 <0.2.0 || >=0.2.1-rc.1 <0.3.0-0",
+    "@deepseek-ai/dsh-llm": ">=0.1.7-rc.2 <0.2.0 || >=0.2.1-rc.1 <0.3.0-0",
+    "@deepseek-ai/dsh-session": ">=0.1.7-rc.2 <0.2.0 || >=0.2.1-rc.1 <0.3.0-0",
+    "@deepseek-ai/dsh-session-title": ">=0.1.7-rc.2 <0.2.0 || >=0.2.1-rc.1 <0.3.0-0",
+    "@deepseek-ai/dsh-user-questions": ">=0.1.7-rc.2 <0.2.0 || >=0.2.1-rc.1 <0.3.0-0",
     "@deepseek-ai/schemastery": "^3.18.1"
   },
   "devDependencies": {
-    "@deepseek-ai/cordis": "4.0.4",
-    "@deepseek-ai/dsh-agent": "0.1.7-rc.2",
-    "@deepseek-ai/dsh-commands": "0.1.7-rc.2",
-    "@deepseek-ai/dsh-llm": "0.1.7-rc.2",
-    "@deepseek-ai/dsh-session": "0.1.7-rc.2",
-    "@deepseek-ai/dsh-session-title": "0.1.7-rc.2",
-    "@deepseek-ai/dsh-user-questions": "0.1.7-rc.2",
-    "@deepseek-ai/schemastery": "3.18.4",
+    "@deepseek-ai/cordis": "4.0.5",
+    "@deepseek-ai/dsh-agent": "0.2.1-rc.1",
+    "@deepseek-ai/dsh-commands": "0.2.1-rc.1",
+    "@deepseek-ai/dsh-llm": "0.2.1-rc.1",
+    "@deepseek-ai/dsh-session": "0.2.1-rc.1",
+    "@deepseek-ai/dsh-session-title": "0.2.1-rc.1",
+    "@deepseek-ai/dsh-user-questions": "0.2.1-rc.1",
+    "@deepseek-ai/schemastery": "3.18.5",
     "@types/node": "^24.0.0",
+    "semver": "^7.7.0",
     "typescript": "^5.9.0"
   }
 }
